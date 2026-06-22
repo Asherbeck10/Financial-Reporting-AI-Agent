@@ -13,18 +13,18 @@ Upload CSV or Excel financial data and ask plain-English questions. Get answers 
 
 ## Stack
 
-| Layer    | Technology                                  |
-| -------- | ------------------------------------------- |
-| Backend  | FastAPI · SQLAlchemy async · Alembic        |
-| Database | PostgreSQL 16                               |
-| AI       | Anthropic Claude (`claude-sonnet-4-6`)      |
-| Frontend | React 18 · TypeScript · Vite · Tailwind CSS |
-| Charts   | Recharts                                    |
-| State    | Zustand · React Router v6                   |
-| Infra    | Docker · docker-compose                     |
-| Tests    | Playwright (e2e)                            |
+| Layer    | Technology                                      |
+| -------- | ----------------------------------------------- |
+| Backend  | FastAPI · SQLAlchemy async · Alembic · Gunicorn |
+| Database | PostgreSQL 16                                   |
+| AI       | Anthropic Claude (`claude-sonnet-4-6`)          |
+| Frontend | React 18 · TypeScript · Vite · Tailwind CSS     |
+| Charts   | Recharts                                        |
+| State    | Zustand · React Router v6                       |
+| Infra    | Docker · docker-compose · nginx                 |
+| Tests    | Playwright (e2e)                                |
 
-## Getting Started
+## Getting Started (Development)
 
 ### Prerequisites
 
@@ -68,20 +68,24 @@ On first boot, Alembic runs the database migration automatically.
 2. Drop a CSV or Excel file onto the upload zone
 3. You're redirected to the chat view — ask anything about your data
 
+---
+
 ## Production Deployment
 
-A separate `docker-compose.prod.yml` runs the app in production mode:
+`docker-compose.prod.yml` is a standalone production config:
+
 - Frontend built with `npm run build` and served by **nginx on port 80**
-- Backend runs **gunicorn** (2 workers) instead of `uvicorn --reload`
-- No source code volume mounts — images are self-contained
+- Backend runs **gunicorn** with 2 uvicorn workers (no `--reload`)
+- No source code volume mounts — images are fully self-contained
 - pgAdmin is excluded
+- `/api/` requests are proxied by nginx — backend port 8000 is not exposed publicly
 
 ### Steps
 
 ```bash
-# 1. Copy and edit your env file
+# 1. Create a production env file
 cp .env.example .env.prod
-# Set ANTHROPIC_API_KEY, POSTGRES_PASSWORD, and ALLOWED_ORIGINS
+# Required: set ANTHROPIC_API_KEY, POSTGRES_PASSWORD, ALLOWED_ORIGINS
 
 # 2. Build and start
 docker compose -f docker-compose.prod.yml --env-file .env.prod up -d --build
@@ -91,19 +95,17 @@ docker compose -f docker-compose.prod.yml --env-file .env.prod up -d --build
 
 | Check | URL | Expected |
 | ----- | --- | -------- |
-| App loads | <http://localhost> | Upload page (port 80) |
+| App loads | <http://localhost> | Upload page (port 80, not 5173) |
 | Health endpoint | <http://localhost/health> | `{"status":"ok"}` |
 | API proxy | <http://localhost/api/datasets> | JSON array |
 
-The `/api/` path is proxied by nginx to the backend — port 8000 is not exposed publicly.
-
 ### ALLOWED_ORIGINS
 
-Set this to your domain (comma-separated for multiple):
+Set this to your domain so the backend accepts requests from it. Comma-separate multiple origins:
 
 ```bash
 ALLOWED_ORIGINS=https://your-app.com
-# or for local prod testing:
+# For local production testing:
 ALLOWED_ORIGINS=http://localhost
 ```
 
@@ -140,13 +142,18 @@ Revenue, exposure, and month-over-month change for 3 clients over 6 months.
 | "What percentage of revenue comes from each client?" | Pie chart |
 | "Which client has the most volatile exposure?" | Analysis with Change column |
 
+---
+
 ## Project Structure
 
 ```text
 Financial-Reporting-AI-Agent/
 ├── backend/
+│   ├── .dockerignore
+│   ├── Dockerfile
+│   ├── requirements.txt
 │   ├── app/
-│   │   ├── main.py              # FastAPI app factory
+│   │   ├── main.py              # FastAPI app factory + /health endpoint
 │   │   ├── config.py            # Settings via pydantic-settings
 │   │   ├── models/              # SQLAlchemy ORM models
 │   │   ├── schemas/             # Pydantic request/response schemas
@@ -159,6 +166,9 @@ Financial-Reporting-AI-Agent/
 │   └── alembic/                 # Database migrations
 │
 ├── frontend/
+│   ├── .dockerignore
+│   ├── Dockerfile               # Multi-stage: node build → nginx serve
+│   ├── nginx.conf               # SPA routing + /api/ proxy
 │   └── src/
 │       ├── api/                 # Typed API client
 │       ├── components/          # UI components
@@ -173,17 +183,21 @@ Financial-Reporting-AI-Agent/
 │       └── types/               # Shared TypeScript interfaces
 │
 ├── e2e/
-│   ├── fixtures/                # Sample CSV for tests
+│   ├── fixtures/                # sample_revenue.csv, sample_financials.xlsx
 │   └── tests/                   # Playwright specs
 │
-├── docker-compose.yml
+├── docker-compose.yml           # Development (Vite dev server, hot reload)
+├── docker-compose.prod.yml      # Production (nginx, gunicorn, no pgAdmin)
 └── .env.example
 ```
+
+---
 
 ## API Reference
 
 | Method | Endpoint                       | Description                        |
 | ------ | ------------------------------ | ---------------------------------- |
+| `GET`  | `/health`                      | Health check                       |
 | `POST` | `/api/uploads`                 | Upload a CSV or Excel file         |
 | `GET`  | `/api/datasets`                | List all datasets                  |
 | `GET`  | `/api/datasets/{id}`           | Get dataset metadata               |
@@ -194,11 +208,13 @@ Financial-Reporting-AI-Agent/
 
 Full interactive docs at <http://localhost:8000/docs>.
 
+---
+
 ## Running Tests
 
 The e2e suite hits the real running app, so Docker must be up first.
 
-**Terminal 1 — start the app:**
+**Terminal 1 — start the app (dev):**
 
 ```bash
 docker compose up
@@ -219,6 +235,8 @@ Test coverage:
 - **chat.spec.ts** — data table rendering, question submission, chart appearance, history persistence
 - **chart.spec.ts** — line and pie chart rendering for different question types
 
+---
+
 ## Local Development (without Docker)
 
 ### Backend
@@ -228,7 +246,6 @@ cd backend
 python -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 
-# Set DATABASE_URL in your shell or a local .env
 export DATABASE_URL=postgresql+asyncpg://finreport:changeme@localhost:5432/finreport_db
 export ANTHROPIC_API_KEY=sk-ant-...
 
@@ -244,18 +261,24 @@ npm install
 npm run dev
 ```
 
+---
+
 ## Environment Variables
 
-| Variable              | Default                 | Description                          |
-| --------------------- | ----------------------- | ------------------------------------ |
-| `ANTHROPIC_API_KEY`   | —                       | **Required.** Your Anthropic API key |
-| `CLAUDE_MODEL`        | `claude-sonnet-4-6`     | Model to use for queries             |
-| `POSTGRES_USER`       | `finreport`             | Database user                        |
-| `POSTGRES_PASSWORD`   | `changeme`              | Database password                    |
-| `POSTGRES_DB`         | `finreport_db`          | Database name                        |
-| `DATA_ROWS_IN_PROMPT` | `100`                   | Max rows sent to Claude per query    |
-| `MAX_UPLOAD_BYTES`    | `20971520`              | Max file size (20 MB)                |
-| `VITE_API_BASE_URL`   | `http://localhost:8000` | Backend URL for the frontend         |
+| Variable              | Default                 | Description                                       |
+| --------------------- | ----------------------- | ------------------------------------------------- |
+| `ANTHROPIC_API_KEY`   | —                       | **Required.** Your Anthropic API key              |
+| `CLAUDE_MODEL`        | `claude-sonnet-4-6`     | Model to use for queries                          |
+| `POSTGRES_USER`       | `finreport`             | Database user                                     |
+| `POSTGRES_PASSWORD`   | `changeme`              | Database password                                 |
+| `POSTGRES_DB`         | `finreport_db`          | Database name                                     |
+| `DATA_ROWS_IN_PROMPT` | `100`                   | Max rows sent to Claude per query                 |
+| `MAX_UPLOAD_BYTES`    | `20971520`              | Max file size (20 MB)                             |
+| `ENVIRONMENT`         | `development`           | Set to `production` for prod deploy               |
+| `ALLOWED_ORIGINS`     | `http://localhost:5173` | Comma-separated CORS origins                      |
+| `VITE_API_BASE_URL`   | `http://localhost:8000` | Backend URL for Vite dev proxy (dev only)         |
+
+---
 
 ## How the AI Layer Works
 
