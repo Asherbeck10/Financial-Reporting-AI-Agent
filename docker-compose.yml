@@ -44,7 +44,6 @@ services:
     volumes:
       - ./backend:/app
       - upload_files:/app/uploads
-      - ./backend/firebase-service-account.json:/app/firebase-service-account.json:ro
     ports:
       - "8000:8000"
     depends_on:
