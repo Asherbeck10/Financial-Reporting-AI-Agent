@@ -1,0 +1,14 @@
+.env
+.DS_Store
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+.mypy_cache/
+uploads/
+node_modules/
+dist/
+.vite/
+playwright-report/
+test-results/
+PLAN.md

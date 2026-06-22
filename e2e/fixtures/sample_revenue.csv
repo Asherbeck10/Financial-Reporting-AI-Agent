@@ -1,0 +1,19 @@
+Month,Client,Product,Revenue,Exposure,Change
+Jan 2024,Acme Corp,Equity,120000,450000,0.05
+Jan 2024,Globex,Fixed Income,85000,310000,-0.02
+Jan 2024,Initech,Derivatives,200000,780000,0.12
+Feb 2024,Acme Corp,Equity,135000,480000,0.13
+Feb 2024,Globex,Fixed Income,79000,295000,-0.08
+Feb 2024,Initech,Derivatives,225000,820000,0.13
+Mar 2024,Acme Corp,Equity,142000,510000,0.05
+Mar 2024,Globex,Fixed Income,91000,340000,0.15
+Mar 2024,Initech,Derivatives,198000,750000,-0.12
+Apr 2024,Acme Corp,Equity,160000,560000,0.13
+Apr 2024,Globex,Fixed Income,95000,360000,0.06
+Apr 2024,Initech,Derivatives,215000,800000,0.09
+May 2024,Acme Corp,Equity,148000,520000,-0.08
+May 2024,Globex,Fixed Income,102000,390000,0.08
+May 2024,Initech,Derivatives,240000,870000,0.11
+Jun 2024,Acme Corp,Equity,175000,590000,0.18
+Jun 2024,Globex,Fixed Income,98000,365000,-0.04
+Jun 2024,Initech,Derivatives,260000,920000,0.08
