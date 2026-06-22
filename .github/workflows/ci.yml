@@ -61,16 +61,22 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
+      - name: Free disk space
+        run: |
+          sudo rm -rf /usr/local/lib/android /usr/share/dotnet /opt/ghc /usr/local/share/boost
+          docker system prune -af --volumes
+          df -h
+
       - name: Start stack
-        run: docker compose -f docker-compose.e2e.yml up -d --build
+        run: docker compose -p e2e -f docker-compose.e2e.yml up -d --build
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
 
       - name: Wait for backend
-        run: timeout 120 sh -c 'until curl -sf http://localhost:8000/health; do sleep 3; done'
+        run: timeout 180 sh -c 'until curl -sf http://localhost:8000/health; do sleep 3; done'
 
       - name: Wait for frontend
-        run: timeout 120 sh -c 'until curl -sf http://localhost:5173; do sleep 3; done'
+        run: timeout 180 sh -c 'until curl -sf http://localhost:5173; do sleep 3; done'
 
       - uses: actions/setup-node@v5
         with:
@@ -86,6 +92,12 @@ jobs:
         working-directory: e2e
         run: npm test
 
+      - name: Print container logs on failure
+        if: failure()
+        run: |
+          echo "=== backend ===" && docker compose -p e2e -f docker-compose.e2e.yml logs backend || true
+          echo "=== frontend ===" && docker compose -p e2e -f docker-compose.e2e.yml logs frontend || true
+
       - name: Upload report on failure
         if: failure()
         uses: actions/upload-artifact@v4
@@ -95,4 +107,4 @@ jobs:
 
       - name: Tear down stack
         if: always()
-        run: docker compose -f docker-compose.e2e.yml down -v
+        run: docker compose -p e2e -f docker-compose.e2e.yml down -v
