@@ -7,8 +7,10 @@ const client = axios.create({
 })
 
 client.interceptors.request.use(async (config) => {
-  const token = await auth.currentUser?.getIdToken()
-  if (token) config.headers.Authorization = `Bearer ${token}`
+  if (import.meta.env.VITE_E2E_AUTH !== "1") {
+    const token = await auth.currentUser?.getIdToken()
+    if (token) config.headers.Authorization = `Bearer ${token}`
+  }
   return config
 })
 

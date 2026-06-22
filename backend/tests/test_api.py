@@ -21,9 +21,9 @@ async def test_health(client):
 # ── auth enforcement ──────────────────────────────────────────────────────────
 
 @pytest.mark.asyncio
-async def test_datasets_no_auth_header_returns_422(anon_client):
+async def test_datasets_no_auth_header_returns_401(anon_client):
     resp = await anon_client.get("/api/datasets")
-    assert resp.status_code == 422  # FastAPI: required Header missing
+    assert resp.status_code == 401
 
 
 @pytest.mark.asyncio
