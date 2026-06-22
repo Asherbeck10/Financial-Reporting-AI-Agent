@@ -83,12 +83,11 @@ On first boot, Alembic runs the database migration automatically.
 ### Steps
 
 ```bash
-# 1. Create a production env file
-cp .env.example .env.prod
-# Required: set ANTHROPIC_API_KEY, POSTGRES_PASSWORD, ALLOWED_ORIGINS
+# 1. Add ALLOWED_ORIGINS to your existing .env
+echo "ALLOWED_ORIGINS=http://localhost" >> .env
 
-# 2. Build and start
-docker compose -f docker-compose.prod.yml --env-file .env.prod up -d --build
+# 2. Build and start (docker compose reads .env automatically)
+docker compose -f docker-compose.prod.yml up -d --build
 ```
 
 ### Verify it's working
