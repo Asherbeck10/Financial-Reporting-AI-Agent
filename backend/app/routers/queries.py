@@ -1,3 +1,4 @@
+import logging
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -7,6 +8,7 @@ from app.dependencies import get_db
 from app.schemas.query import QueryRequest, QueryResponse, ChartDataPoint, ChartConfig
 from app.services import query_service
 
+logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
@@ -40,8 +42,9 @@ async def submit_query(body: QueryRequest, db: AsyncSession = Depends(get_db)):
         query = await query_service.run_query(db, body.dataset_id, body.question)
     except ValueError as exc:
         raise HTTPException(status_code=404, detail=str(exc))
-    except Exception as exc:
-        raise HTTPException(status_code=500, detail=f"Query failed: {exc}")
+    except Exception:
+        logger.exception("Query failed for dataset %s", body.dataset_id)
+        raise HTTPException(status_code=500, detail="Query failed. Please try again.")
     return _to_response(query)
 
 

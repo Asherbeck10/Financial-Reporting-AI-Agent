@@ -7,6 +7,7 @@ interface Props {
 }
 
 const ALLOWED_EXTENSIONS = [".csv", ".xls", ".xlsx"]
+const MAX_BYTES = 20 * 1024 * 1024
 
 function getExtension(filename: string) {
   return filename.slice(filename.lastIndexOf(".")).toLowerCase()
@@ -34,12 +35,16 @@ export function UploadDropzone({ onFile, disabled }: Props) {
     useDropzone({
       onDrop,
       maxFiles: 1,
+      maxSize: MAX_BYTES,
       disabled,
       // Accept all files — we validate by extension in onDrop
       // macOS assigns unpredictable MIME types to xlsx/xls files
     })
 
-  const rejected = fileRejections.length > 0 || extError
+  const sizeRejected = fileRejections.some((f) =>
+    f.errors.some((e) => e.code === "file-too-large")
+  )
+  const rejected = extError || sizeRejected
 
   return (
     <div className="w-full">
@@ -82,7 +87,9 @@ export function UploadDropzone({ onFile, disabled }: Props) {
           data-testid="upload-error"
           className="mt-3 text-sm text-down font-medium"
         >
-          Only CSV and Excel files are accepted (.csv, .xls, .xlsx). Please try again.
+          {sizeRejected
+            ? "File exceeds 20 MB limit. Please choose a smaller file."
+            : "Only CSV and Excel files are accepted (.csv, .xls, .xlsx). Please try again."}
         </p>
       )}
 

@@ -68,6 +68,47 @@ On first boot, Alembic runs the database migration automatically.
 2. Drop a CSV or Excel file onto the upload zone
 3. You're redirected to the chat view — ask anything about your data
 
+## Production Deployment
+
+A separate `docker-compose.prod.yml` runs the app in production mode:
+- Frontend built with `npm run build` and served by **nginx on port 80**
+- Backend runs **gunicorn** (2 workers) instead of `uvicorn --reload`
+- No source code volume mounts — images are self-contained
+- pgAdmin is excluded
+
+### Steps
+
+```bash
+# 1. Copy and edit your env file
+cp .env.example .env.prod
+# Set ANTHROPIC_API_KEY, POSTGRES_PASSWORD, and ALLOWED_ORIGINS
+
+# 2. Build and start
+docker compose -f docker-compose.prod.yml --env-file .env.prod up -d --build
+```
+
+### Verify it's working
+
+| Check | URL | Expected |
+| ----- | --- | -------- |
+| App loads | <http://localhost> | Upload page (port 80) |
+| Health endpoint | <http://localhost/health> | `{"status":"ok"}` |
+| API proxy | <http://localhost/api/datasets> | JSON array |
+
+The `/api/` path is proxied by nginx to the backend — port 8000 is not exposed publicly.
+
+### ALLOWED_ORIGINS
+
+Set this to your domain (comma-separated for multiple):
+
+```bash
+ALLOWED_ORIGINS=https://your-app.com
+# or for local prod testing:
+ALLOWED_ORIGINS=http://localhost
+```
+
+---
+
 ## Example Questions
 
 Two sample files are included in `e2e/fixtures/` to get started immediately.

@@ -1,3 +1,5 @@
+import logging
+
 from fastapi import APIRouter, Depends, UploadFile, File, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -7,6 +9,7 @@ from app.schemas.upload import UploadResponse, ColumnInfo
 from app.services import file_parser, dataset_service
 from app.config import settings
 
+logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
@@ -36,11 +39,12 @@ async def create_upload(
         upload.status = "failed"
         await db.commit()
         raise
-    except Exception as exc:
+    except Exception:
         upload.status = "failed"
-        upload.error_msg = str(exc)
+        upload.error_msg = "Processing failed"
         await db.commit()
-        raise HTTPException(status_code=500, detail=f"Processing failed: {exc}")
+        logger.exception("Upload processing failed for %s", file.filename)
+        raise HTTPException(status_code=500, detail="Upload failed. Please try again.")
 
     return UploadResponse(
         upload_id=upload.id,
