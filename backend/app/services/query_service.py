@@ -11,12 +11,12 @@ from app.services import dataset_service, claude_service
 from app.config import settings
 
 
-async def run_query(db: AsyncSession, dataset_id: UUID, question: str) -> Query:
-    dataset = await dataset_service.get_dataset(db, dataset_id)
+async def run_query(db: AsyncSession, dataset_id: UUID, question: str, user_id: str) -> Query:
+    dataset = await dataset_service.get_dataset(db, dataset_id, user_id=user_id)
     if dataset is None:
         raise ValueError(f"Dataset {dataset_id} not found")
 
-    query = Query(dataset_id=dataset_id, question=question, status="running")
+    query = Query(dataset_id=dataset_id, question=question, status="running", user_id=user_id)
     db.add(query)
     await db.flush()
 

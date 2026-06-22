@@ -3,7 +3,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.dependencies import get_db
+from app.dependencies import get_db, get_current_user
 from app.schemas.dataset import DatasetSummary, DataTableResponse
 from app.schemas.upload import ColumnInfo
 from app.services import dataset_service
@@ -12,8 +12,11 @@ router = APIRouter()
 
 
 @router.get("", response_model=list[DatasetSummary])
-async def list_datasets(db: AsyncSession = Depends(get_db)):
-    datasets = await dataset_service.list_datasets(db)
+async def list_datasets(
+    db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+):
+    datasets = await dataset_service.list_datasets(db, current_user["uid"])
     return [
         DatasetSummary(
             id=d.id,
@@ -27,8 +30,12 @@ async def list_datasets(db: AsyncSession = Depends(get_db)):
 
 
 @router.get("/{dataset_id}", response_model=DatasetSummary)
-async def get_dataset(dataset_id: UUID, db: AsyncSession = Depends(get_db)):
-    dataset = await dataset_service.get_dataset(db, dataset_id)
+async def get_dataset(
+    dataset_id: UUID,
+    db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+):
+    dataset = await dataset_service.get_dataset(db, dataset_id, user_id=current_user["uid"])
     if not dataset:
         raise HTTPException(status_code=404, detail="Dataset not found.")
     return DatasetSummary(
@@ -46,8 +53,9 @@ async def get_rows(
     page: int = Query(1, ge=1),
     page_size: int = Query(50, ge=1, le=200),
     db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
 ):
-    dataset = await dataset_service.get_dataset(db, dataset_id)
+    dataset = await dataset_service.get_dataset(db, dataset_id, user_id=current_user["uid"])
     if not dataset:
         raise HTTPException(status_code=404, detail="Dataset not found.")
 

@@ -1,9 +1,11 @@
 import { Link, useParams } from "react-router-dom"
 import { useDatasets } from "../../hooks/useDatasets"
+import { useAuth } from "../../context/AuthContext"
 
 export function Sidebar() {
   const datasets = useDatasets()
   const { id } = useParams<{ id: string }>()
+  const { user, signOut } = useAuth()
 
   return (
     <aside className="flex h-full w-60 flex-col bg-sidebar text-slate-400 flex-shrink-0">
@@ -43,7 +45,7 @@ export function Sidebar() {
         })}
       </div>
 
-      <div className="px-2 py-4 border-t border-slate-700/50">
+      <div className="px-2 py-3 border-t border-slate-700/50 space-y-1">
         <Link
           to="/"
           className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-slate-400 hover:bg-slate-800/60 hover:text-slate-200 transition-colors"
@@ -53,6 +55,28 @@ export function Sidebar() {
           </svg>
           Upload New
         </Link>
+
+        <div className="flex items-center gap-2 rounded-lg px-3 py-2">
+          {user?.photoURL ? (
+            <img src={user.photoURL} referrerPolicy="no-referrer" alt="" className="h-6 w-6 rounded-full flex-shrink-0" />
+          ) : (
+            <div className="h-6 w-6 rounded-full bg-slate-700 flex-shrink-0 flex items-center justify-center text-xs text-slate-300">
+              {user?.displayName?.[0] ?? "?"}
+            </div>
+          )}
+          <span className="flex-1 truncate text-xs text-slate-400">
+            {user?.displayName ?? user?.email}
+          </span>
+          <button
+            onClick={signOut}
+            title="Sign out"
+            className="text-slate-500 hover:text-slate-300 transition-colors flex-shrink-0"
+          >
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M12 9l-3 3m0 0l3 3m-3-3h12.75" />
+            </svg>
+          </button>
+        </div>
       </div>
     </aside>
   )

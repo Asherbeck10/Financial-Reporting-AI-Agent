@@ -1,3 +1,5 @@
+import app.firebase  # noqa: F401 — initializes Firebase Admin SDK at startup
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -6,11 +8,11 @@ from app.routers import uploads, datasets, queries
 
 
 def create_app() -> FastAPI:
-    app = FastAPI(title="Financial Reporting AI Agent", version="0.1.0")
+    application = FastAPI(title="Financial Reporting AI Agent", version="0.1.0")
 
     origins = [o.strip() for o in settings.allowed_origins.split(",") if o.strip()]
 
-    app.add_middleware(
+    application.add_middleware(
         CORSMiddleware,
         allow_origins=origins,
         allow_credentials=True,
@@ -18,15 +20,15 @@ def create_app() -> FastAPI:
         allow_headers=["*"],
     )
 
-    @app.get("/health")
+    @application.get("/health")
     async def health() -> dict[str, str]:
         return {"status": "ok"}
 
-    app.include_router(uploads.router, prefix="/api/uploads", tags=["uploads"])
-    app.include_router(datasets.router, prefix="/api/datasets", tags=["datasets"])
-    app.include_router(queries.router, prefix="/api/queries", tags=["queries"])
+    application.include_router(uploads.router, prefix="/api/uploads", tags=["uploads"])
+    application.include_router(datasets.router, prefix="/api/datasets", tags=["datasets"])
+    application.include_router(queries.router, prefix="/api/queries", tags=["queries"])
 
-    return app
+    return application
 
 
 app = create_app()

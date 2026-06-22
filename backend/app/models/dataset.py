@@ -2,7 +2,7 @@ from datetime import datetime
 from uuid import UUID, uuid4
 from typing import TYPE_CHECKING
 
-from sqlalchemy import ForeignKey, func, Integer, Text
+from sqlalchemy import ForeignKey, func, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.dialects.postgresql import UUID as PG_UUID, JSONB
 
@@ -18,6 +18,7 @@ class Dataset(Base):
 
     id: Mapped[UUID] = mapped_column(PG_UUID(as_uuid=True), primary_key=True, default=uuid4)
     upload_id: Mapped[UUID] = mapped_column(PG_UUID(as_uuid=True), ForeignKey("uploads.id", ondelete="CASCADE"), nullable=False, index=True)
+    user_id: Mapped[str | None] = mapped_column(String(128), nullable=True, index=True)
     name: Mapped[str] = mapped_column(Text, nullable=False)
     row_count: Mapped[int] = mapped_column(Integer, nullable=False)
     columns: Mapped[list] = mapped_column(JSONB, nullable=False)

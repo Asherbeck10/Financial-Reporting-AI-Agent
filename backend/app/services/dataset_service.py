@@ -8,9 +8,10 @@ from app.models.upload import Upload
 from app.services.file_parser import ParsedData
 
 
-async def create_dataset(db: AsyncSession, parsed: ParsedData, upload: Upload) -> Dataset:
+async def create_dataset(db: AsyncSession, parsed: ParsedData, upload: Upload, user_id: str) -> Dataset:
     dataset = Dataset(
         upload_id=upload.id,
+        user_id=user_id,
         name=parsed.filename,
         row_count=parsed.row_count,
         columns=[
@@ -39,13 +40,20 @@ async def create_dataset(db: AsyncSession, parsed: ParsedData, upload: Upload) -
     return dataset
 
 
-async def list_datasets(db: AsyncSession) -> list[Dataset]:
-    result = await db.execute(select(Dataset).order_by(Dataset.created_at.desc()))
+async def list_datasets(db: AsyncSession, user_id: str) -> list[Dataset]:
+    result = await db.execute(
+        select(Dataset)
+        .where(Dataset.user_id == user_id)
+        .order_by(Dataset.created_at.desc())
+    )
     return list(result.scalars().all())
 
 
-async def get_dataset(db: AsyncSession, dataset_id: UUID) -> Dataset | None:
-    result = await db.execute(select(Dataset).where(Dataset.id == dataset_id))
+async def get_dataset(db: AsyncSession, dataset_id: UUID, user_id: str | None = None) -> Dataset | None:
+    query = select(Dataset).where(Dataset.id == dataset_id)
+    if user_id is not None:
+        query = query.where(Dataset.user_id == user_id)
+    result = await db.execute(query)
     return result.scalar_one_or_none()
 
 

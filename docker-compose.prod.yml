@@ -28,8 +28,10 @@ services:
       MAX_UPLOAD_BYTES: ${MAX_UPLOAD_BYTES:-20971520}
       ENVIRONMENT: production
       ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-http://localhost}
+      FIREBASE_PROJECT_ID: ${FIREBASE_PROJECT_ID}
     volumes:
       - upload_files:/app/uploads
+      - ./backend/firebase-service-account.json:/app/firebase-service-account.json:ro
     depends_on:
       postgres:
         condition: service_healthy
