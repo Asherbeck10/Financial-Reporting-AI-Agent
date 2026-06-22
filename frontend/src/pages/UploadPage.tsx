@@ -4,11 +4,13 @@ import { useAppStore } from "../store/appStore"
 import { UploadDropzone } from "../components/upload/UploadDropzone"
 import { UploadProgress } from "../components/upload/UploadProgress"
 import { getDataset } from "../api/datasets"
+import { useAuth } from "../context/AuthContext"
 
 export function UploadPage() {
   const navigate = useNavigate()
   const { upload, reset, status, progress, error } = useUpload()
   const addDataset = useAppStore((s) => s.addDataset)
+  const { user, signOut } = useAuth()
 
   async function handleFile(file: File) {
     const result = await upload(file)
@@ -25,7 +27,25 @@ export function UploadPage() {
   }
 
   return (
-    <div className="flex h-screen w-full flex-col items-center justify-center px-6">
+    <div className="relative flex h-screen w-full flex-col items-center justify-center px-6">
+      <div className="absolute top-4 right-5 flex items-center gap-2">
+        {user?.photoURL ? (
+          <img src={user.photoURL} referrerPolicy="no-referrer" alt="" className="h-7 w-7 rounded-full" />
+        ) : (
+          <div className="h-7 w-7 rounded-full bg-slate-200 flex items-center justify-center text-xs font-medium text-slate-600">
+            {user?.displayName?.[0] ?? "?"}
+          </div>
+        )}
+        <button
+          onClick={signOut}
+          className="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-sm text-slate-500 hover:bg-rose-50 hover:text-rose-500 transition-colors"
+        >
+          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M12 9l-3 3m0 0l3 3m-3-3h12.75" />
+          </svg>
+          Sign out
+        </button>
+      </div>
       <div className="w-full max-w-lg space-y-8">
         <div className="space-y-2">
           <div className="flex items-center gap-2 mb-6">
