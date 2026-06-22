@@ -2,7 +2,7 @@
 HTTP-layer tests. Firebase auth and service functions are mocked so
 no database or external API is needed.
 """
-from datetime import datetime
+from datetime import datetime, timezone
 from unittest.mock import AsyncMock, MagicMock, patch
 from uuid import uuid4
 
@@ -57,7 +57,7 @@ async def test_list_datasets_returns_user_datasets(client):
     ds.columns = [
         {"name": "month", "dtype": "text", "sample_values": ["Jan"], "null_count": 0, "unique_count": 12}
     ]
-    ds.created_at = datetime.utcnow()
+    ds.created_at = datetime.now(timezone.utc)
 
     with patch("app.routers.datasets.dataset_service.list_datasets", new=AsyncMock(return_value=[ds])):
         resp = await client.get("/api/datasets")
@@ -85,7 +85,7 @@ async def test_get_dataset_found(client):
     ds.name = "revenue.csv"
     ds.row_count = 50
     ds.columns = []
-    ds.created_at = datetime.utcnow()
+    ds.created_at = datetime.now(timezone.utc)
 
     with patch("app.routers.datasets.dataset_service.get_dataset", new=AsyncMock(return_value=ds)):
         resp = await client.get(f"/api/datasets/{ds.id}")
@@ -134,7 +134,7 @@ async def test_submit_query_success(client):
     q.id = uuid4()
     q.dataset_id = uuid4()
     q.question = "What is total revenue?"
-    q.created_at = datetime.utcnow()
+    q.created_at = datetime.now(timezone.utc)
 
     r = MagicMock()
     r.answer_text = "Total revenue is $500k."
