@@ -155,7 +155,15 @@ Full interactive docs at <http://localhost:8000/docs>.
 
 ## Running Tests
 
-Install Playwright and run the end-to-end suite (requires the app to be running):
+The e2e suite hits the real running app, so Docker must be up first.
+
+**Terminal 1 — start the app:**
+
+```bash
+docker compose up
+```
+
+**Terminal 2 — run the tests:**
 
 ```bash
 cd e2e
