@@ -1,4 +1,5 @@
 import io
+import warnings
 from dataclasses import dataclass, field
 
 import pandas as pd
@@ -37,7 +38,9 @@ def _infer_dtype(series: pd.Series) -> str:
     if pd.api.types.is_numeric_dtype(series):
         return "numeric"
     try:
-        pd.to_datetime(series.dropna().head(20))
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", UserWarning)
+            pd.to_datetime(series.dropna().head(20))
         return "date"
     except Exception:
         return "text"
