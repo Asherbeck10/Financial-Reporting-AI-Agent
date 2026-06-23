@@ -1,5 +1,7 @@
 # FinReport AI
 
+[![CI](https://github.com/Asherbeck10/Financial-Reporting-AI-Agent/actions/workflows/ci.yml/badge.svg)](https://github.com/Asherbeck10/Financial-Reporting-AI-Agent/actions/workflows/ci.yml)
+
 Upload CSV or Excel financial data and ask plain-English questions. Get answers with charts, key stats, and prose explanations — powered by Claude.
 
 ## Features
@@ -7,6 +9,7 @@ Upload CSV or Excel financial data and ask plain-English questions. Get answers 
 - **Drag-and-drop upload** — CSV, XLS, XLSX up to 20 MB
 - **Natural language queries** — ask anything: "Show me the largest changes in client exposure this month"
 - **AI-generated answers** — bar, line, and pie charts + summary stat badges + prose explanation
+- **Firebase authentication** — Google sign-in, per-user data isolation
 - **Persistent chat history** — all queries saved per dataset, available after reload
 - **Paginated data table** — inspect raw rows alongside the conversation
 - **Multi-dataset sidebar** — switch between uploaded files instantly
@@ -21,6 +24,7 @@ Upload CSV or Excel financial data and ask plain-English questions. Get answers 
 | Frontend | React 18 · TypeScript · Vite · Tailwind CSS     |
 | Charts   | Recharts                                        |
 | State    | Zustand · React Router v6                       |
+| Auth     | Firebase Authentication (Google sign-in)        |
 | Infra    | Docker · docker-compose · nginx                 |
 | Tests    | Playwright (e2e)                                |
 
@@ -30,6 +34,7 @@ Upload CSV or Excel financial data and ask plain-English questions. Get answers 
 
 - [Docker Desktop](https://www.docker.com/products/docker-desktop/)
 - An [Anthropic API key](https://console.anthropic.com/)
+- A [Firebase project](https://console.firebase.google.com/) with **Authentication → Google sign-in** enabled
 
 ### 1. Configure environment
 
@@ -37,15 +42,26 @@ Upload CSV or Excel financial data and ask plain-English questions. Get answers 
 cp .env.example .env
 ```
 
-Open `.env` and set your API key:
+Open `.env` and fill in your keys:
 
 ```bash
 ANTHROPIC_API_KEY=sk-ant-...
+
+# Firebase — backend
+FIREBASE_PROJECT_ID=your-project-id
+
+# Firebase — frontend (Project settings → General → Your apps → SDK config)
+VITE_FIREBASE_API_KEY=AIza...
+VITE_FIREBASE_AUTH_DOMAIN=your-project.firebaseapp.com
+VITE_FIREBASE_PROJECT_ID=your-project-id
 ```
 
-The defaults for everything else work out of the box.
+### 2. Add the Firebase service account
 
-### 2. Start all services
+In the Firebase Console go to **Project settings → Service accounts → Generate new private key**.
+Save the downloaded JSON as `backend/firebase-service-account.json` (this file is gitignored).
+
+### 3. Start all services
 
 ```bash
 docker compose up --build
@@ -62,11 +78,12 @@ This starts four containers:
 
 On first boot, Alembic runs the database migration automatically.
 
-### 3. Use the app
+### 4. Use the app
 
 1. Open <http://localhost:5173>
-2. Drop a CSV or Excel file onto the upload zone
-3. You're redirected to the chat view — ask anything about your data
+2. Sign in with Google
+3. Drop a CSV or Excel file onto the upload zone
+4. You're redirected to the chat view — ask anything about your data
 
 ---
 
@@ -211,6 +228,25 @@ Full interactive docs at <http://localhost:8000/docs>.
 
 ## Running Tests
 
+### Backend (pytest)
+
+No database or Firebase needed — all external dependencies are mocked via `conftest.py`.
+
+```bash
+cd backend
+python -m venv .venv && source .venv/bin/activate
+pip install -r requirements.txt -r requirements-test.txt
+pytest
+```
+
+Test coverage:
+
+- **test_file_parser.py** — CSV/Excel parsing, column type inference, numeric stats, NaN handling
+- **test_api.py** — HTTP layer: auth rejection, dataset CRUD, file upload validation, query submission
+- **test_claude_service.py** — Response parsing, markdown fence stripping, prompt construction
+
+### End-to-end (Playwright)
+
 The e2e suite hits the real running app, so Docker must be up first.
 
 **Terminal 1 — start the app (dev):**
@@ -240,6 +276,8 @@ Test coverage:
 
 ### Backend
 
+Ensure `backend/firebase-service-account.json` exists (see [step 2](#2-add-the-firebase-service-account) above), then:
+
 ```bash
 cd backend
 python -m venv .venv && source .venv/bin/activate
@@ -247,6 +285,7 @@ pip install -r requirements.txt
 
 export DATABASE_URL=postgresql+asyncpg://finreport:changeme@localhost:5432/finreport_db
 export ANTHROPIC_API_KEY=sk-ant-...
+export FIREBASE_PROJECT_ID=your-project-id
 
 alembic upgrade head
 uvicorn app.main:app --reload
@@ -264,18 +303,25 @@ npm run dev
 
 ## Environment Variables
 
-| Variable              | Default                 | Description                                       |
-| --------------------- | ----------------------- | ------------------------------------------------- |
-| `ANTHROPIC_API_KEY`   | —                       | **Required.** Your Anthropic API key              |
-| `CLAUDE_MODEL`        | `claude-sonnet-4-6`     | Model to use for queries                          |
-| `POSTGRES_USER`       | `finreport`             | Database user                                     |
-| `POSTGRES_PASSWORD`   | `changeme`              | Database password                                 |
-| `POSTGRES_DB`         | `finreport_db`          | Database name                                     |
-| `DATA_ROWS_IN_PROMPT` | `100`                   | Max rows sent to Claude per query                 |
-| `MAX_UPLOAD_BYTES`    | `20971520`              | Max file size (20 MB)                             |
-| `ENVIRONMENT`         | `development`           | Set to `production` for prod deploy               |
-| `ALLOWED_ORIGINS`     | `http://localhost:5173` | Comma-separated CORS origins                      |
-| `VITE_API_BASE_URL`   | `http://localhost:8000` | Backend URL for Vite dev proxy (dev only)         |
+| Variable                       | Default                 | Description                                                    |
+| ------------------------------ | ----------------------- | -------------------------------------------------------------- |
+| `ANTHROPIC_API_KEY`            | —                       | **Required.** Your Anthropic API key                           |
+| `CLAUDE_MODEL`                 | `claude-sonnet-4-6`     | Model to use for queries                                       |
+| `FIREBASE_PROJECT_ID`          | —                       | **Required.** Firebase project ID (backend token verification) |
+| `VITE_FIREBASE_API_KEY`        | —                       | **Required.** Firebase web API key (frontend SDK)              |
+| `VITE_FIREBASE_AUTH_DOMAIN`    | —                       | **Required.** Firebase auth domain (frontend SDK)              |
+| `VITE_FIREBASE_PROJECT_ID`     | —                       | **Required.** Firebase project ID (frontend SDK)               |
+| `POSTGRES_USER`                | `finreport`             | Database user                                                  |
+| `POSTGRES_PASSWORD`            | `changeme`              | Database password                                              |
+| `POSTGRES_DB`                  | `finreport_db`          | Database name                                                  |
+| `PGADMIN_EMAIL`                | `admin@local.dev`       | pgAdmin login email                                            |
+| `PGADMIN_PASSWORD`             | `changeme`              | pgAdmin login password                                         |
+| `DATA_ROWS_IN_PROMPT`          | `100`                   | Max rows sent to Claude per query                              |
+| `MAX_UPLOAD_BYTES`             | `20971520`              | Max file size (20 MB)                                          |
+| `MAX_QUERIES_PER_USER_PER_DAY` | `0` (unlimited)         | Daily query cap per user; 0 = no limit                         |
+| `ENVIRONMENT`                  | `development`           | Set to `production` for prod deploy                            |
+| `ALLOWED_ORIGINS`              | `http://localhost:5173` | Comma-separated CORS origins                                   |
+| `VITE_API_BASE_URL`            | `http://localhost:8000` | Backend URL for Vite dev proxy (dev only)                      |
 
 ---
 

@@ -1,10 +1,14 @@
 import logging
+from datetime import date, datetime
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.config import settings
 from app.dependencies import get_db, get_current_user
+from app.models.query import Query
 from app.schemas.query import QueryRequest, QueryResponse, ChartDataPoint, ChartConfig
 from app.services import query_service
 
@@ -42,6 +46,17 @@ async def submit_query(
     db: AsyncSession = Depends(get_db),
     current_user: dict = Depends(get_current_user),
 ):
+    if settings.MAX_QUERIES_PER_USER_PER_DAY > 0:
+        today_start = datetime.combine(date.today(), datetime.min.time())
+        count = await db.scalar(
+            select(func.count()).where(
+                Query.user_id == current_user["uid"],
+                Query.created_at >= today_start,
+            )
+        )
+        if count >= settings.MAX_QUERIES_PER_USER_PER_DAY:
+            raise HTTPException(status_code=429, detail="Daily query limit reached. Try again tomorrow.")
+
     try:
         query = await query_service.run_query(db, body.dataset_id, body.question, current_user["uid"])
     except ValueError as exc:

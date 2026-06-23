@@ -14,3 +14,6 @@ dist/
 playwright-report/
 test-results/
 PLAN.md
+DEPLOYMENT.md
+*.pem
+*.key

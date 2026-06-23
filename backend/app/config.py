@@ -7,6 +7,7 @@ class Settings(BaseSettings):
     FIREBASE_PROJECT_ID: str = ""
     CLAUDE_MODEL: str = "claude-sonnet-4-6"
     MAX_UPLOAD_BYTES: int = 20 * 1024 * 1024
+    MAX_QUERIES_PER_USER_PER_DAY: int = 0  # 0 = unlimited; set via env var on the server
     DATA_ROWS_IN_PROMPT: int = 100
     UPLOAD_DIR: str = "/app/uploads"
     environment: str = "development"
